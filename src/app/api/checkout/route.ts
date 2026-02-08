@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { stripe, isStripeConfigured } from "@/lib/stripe";
+import { PRICING } from "@/lib/pricing";
 
 export async function POST(request: NextRequest) {
+  // Stripe未設定時
+  if (!isStripeConfigured() || !stripe) {
+    return NextResponse.json(
+      { error: "Payment service not configured" },
+      { status: 503 }
+    );
+  }
+
   try {
     const { attemptId, anonId } = await request.json();
 
@@ -17,11 +26,11 @@ export async function POST(request: NextRequest) {
       line_items: [
         {
           price_data: {
-            currency: "jpy",
-            unit_amount: 1980,
+            currency: PRICING.CURRENCY,
+            unit_amount: PRICING.TOTAL_PRICE, // 550円（税込）
             product_data: {
-              name: "モテIQ 詳細レポート",
-              description: "5因子の詳細解説・改善プラン・LINEテンプレ付き",
+              name: PRICING.PRODUCT_NAME,
+              description: PRICING.PRODUCT_DESCRIPTION,
             },
           },
           quantity: 1,
@@ -31,13 +40,16 @@ export async function POST(request: NextRequest) {
         attempt_id: attemptId,
         anon_id: anonId,
       },
-      success_url: `${baseUrl}/report/${attemptId}`,
+      success_url: `${baseUrl}/report/${attemptId}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/result/${attemptId}`,
     });
 
     return NextResponse.json({ url: session.url });
   } catch (e) {
     console.error("Checkout API error:", e);
-    return NextResponse.json({ error: "Failed to create session" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create session" },
+      { status: 500 }
+    );
   }
 }

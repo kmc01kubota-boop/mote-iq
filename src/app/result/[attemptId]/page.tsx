@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { Scores, FACTOR_KEYS, FACTOR_LABELS } from "@/types";
-import { getFactorComment, getGradeComment } from "@/data/report-content";
+import { getFactorComment, getGradeComment, getTypeLabel } from "@/data/report-content";
 import RadarChart from "@/components/result/RadarChart";
 import ScoreDisplay from "@/components/result/ScoreDisplay";
 import FactorBar from "@/components/result/FactorBar";
@@ -17,6 +17,11 @@ export default async function ResultPage({
   params: Promise<{ attemptId: string }>;
 }) {
   const { attemptId } = await params;
+
+  // Supabase未設定時
+  if (!isSupabaseConfigured() || !supabase) {
+    notFound();
+  }
 
   const { data: attempt, error } = await supabase
     .from("attempts")
@@ -37,14 +42,35 @@ export default async function ResultPage({
   const strongest = sorted[0];
   const weakest = sorted[sorted.length - 1];
 
+  // タイプ診断
+  const typeInfo = getTypeLabel(scores.grade, weakest);
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      {/* ========== 無料ゾーン ========== */}
+      <div className="mb-8">
+        <span className="inline-block bg-accent/10 text-accent text-xs font-bold px-3 py-1 rounded-full mb-4">
+          FREE
+        </span>
+      </div>
+
       {/* Score */}
       <ScoreDisplay
         total={scores.total}
         grade={scores.grade}
         percentile={scores.percentile}
       />
+
+      {/* Type Label */}
+      <div className="text-center my-6 sm:my-8 py-6 bg-gradient-to-b from-slate-900/50 to-transparent rounded-2xl border border-slate-800">
+        <p className="text-slate-400 text-sm mb-2">あなたのタイプは...</p>
+        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+          {typeInfo.title}
+        </h2>
+        <p className="text-amber-400 text-sm sm:text-base">
+          {typeInfo.subtitle}
+        </p>
+      </div>
 
       {/* Radar Chart */}
       <div className="my-8">
@@ -63,60 +89,86 @@ export default async function ResultPage({
       </div>
 
       {/* Strength / Weakness */}
-      <div className="grid md:grid-cols-2 gap-4 my-8">
-        <div className="bg-bg-card border border-border rounded-lg p-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 my-6 sm:my-8">
+        <div className="bg-bg-card border border-border rounded-2xl p-4 sm:p-5">
           <div className="text-accent text-sm font-bold mb-1">最強因子</div>
-          <div className="font-bold">{FACTOR_LABELS[strongest]}</div>
-          <div className="text-text-muted text-sm mt-1">
+          <div className="font-bold text-base">{FACTOR_LABELS[strongest]}</div>
+          <div className="text-text-muted text-sm mt-1 leading-relaxed">
             {getFactorComment(strongest, scores.factors[strongest].normalized)}
           </div>
         </div>
-        <div className="bg-bg-card border border-border rounded-lg p-5">
+        <div className="bg-bg-card border border-border rounded-2xl p-4 sm:p-5">
           <div className="text-text-muted text-sm font-bold mb-1">要改善因子</div>
-          <div className="font-bold">{FACTOR_LABELS[weakest]}</div>
-          <div className="text-text-muted text-sm mt-1">
+          <div className="font-bold text-base">{FACTOR_LABELS[weakest]}</div>
+          <div className="text-text-muted text-sm mt-1 leading-relaxed">
             {getFactorComment(weakest, scores.factors[weakest].normalized)}
           </div>
         </div>
       </div>
 
       {/* Free comment */}
-      <div className="bg-bg-card border border-border rounded-lg p-6 my-8">
-        <h3 className="font-bold mb-2">軍師の所見</h3>
-        <p className="text-text-secondary text-sm leading-relaxed">
+      <div className="bg-bg-card border border-border rounded-2xl p-5 sm:p-6 my-6 sm:my-8">
+        <h3 className="font-bold mb-2 text-base">軍師の所見</h3>
+        <p className="text-text-secondary text-sm sm:text-base leading-relaxed">
           {getGradeComment(scores.grade)}
         </p>
       </div>
 
-      {/* Teaser: Blurred paid content */}
-      <div className="relative my-8">
-        <div className="blur-teaser">
-          <div className="bg-bg-card border border-border rounded-lg p-6 space-y-4">
-            <h3 className="font-bold">因子別 詳細解説</h3>
-            <p className="text-text-secondary text-sm">
-              清潔感とは「清潔であること」ではない。相手の無意識に「この人は安全だ」と感じさせる非言語シグナルの集合体だ。爪が整っている、服にシワがない、靴が手入れされている...
-            </p>
-            <h3 className="font-bold">よくある地雷行動トップ3</h3>
-            <p className="text-text-secondary text-sm">
-              1. 食事中にスマホをテーブルに置く...
-            </p>
-            <h3 className="font-bold">7日改善プラン</h3>
-            <p className="text-text-secondary text-sm">
-              Day 1: 5点セルフチェックの習慣化...
-            </p>
-          </div>
+      {/* ========== 有料ゾーン ========== */}
+      <div className="border-t border-border pt-8 mt-12">
+        <div className="text-center mb-6">
+          <span className="inline-block bg-accent text-white text-xs font-bold px-3 py-1 rounded-full">
+            PREMIUM
+          </span>
+          <p className="text-text-muted text-sm mt-2">
+            以下のコンテンツは有料レポートで解放されます
+          </p>
         </div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-bg-primary/80 backdrop-blur-sm rounded-lg px-6 py-3 border border-border">
-            <span className="text-text-secondary text-sm">
-              詳細は有料レポートで解放
-            </span>
-          </div>
-        </div>
-      </div>
 
-      {/* Payment CTA */}
-      <PaymentCTA attemptId={attemptId} />
+        {/* Locked content list */}
+        <div className="bg-bg-secondary border border-border rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8">
+          <ul className="space-y-3 sm:space-y-4">
+            <li className="flex items-start gap-3">
+              <span className="text-accent mt-0.5">🔒</span>
+              <div>
+                <div className="font-medium text-text-primary">因子別 詳細解説</div>
+                <div className="text-text-muted text-sm">5因子それぞれの深掘り分析と改善ポイント</div>
+              </div>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-accent mt-0.5">🔒</span>
+              <div>
+                <div className="font-medium text-text-primary">よくある地雷行動 TOP3</div>
+                <div className="text-text-muted text-sm">無意識にやりがちなNG行動と回避法</div>
+              </div>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-accent mt-0.5">🔒</span>
+              <div>
+                <div className="font-medium text-text-primary">7日改善プラン</div>
+                <div className="text-text-muted text-sm">1日3分で実践できるステップバイステップ</div>
+              </div>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-accent mt-0.5">🔒</span>
+              <div>
+                <div className="font-medium text-text-primary">LINEテンプレート集</div>
+                <div className="text-text-muted text-sm">コピペで使える実戦テンプレ</div>
+              </div>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-accent mt-0.5">🔒</span>
+              <div>
+                <div className="font-medium text-text-primary">ファッション提案</div>
+                <div className="text-text-muted text-sm">あなたのタイプに合ったスタイリング指南</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        {/* Payment CTA */}
+        <PaymentCTA attemptId={attemptId} />
+      </div>
 
       {/* Disclaimer */}
       <p className="text-xs text-text-muted text-center mt-8">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { getAnonId } from "@/lib/anon";
+import { PRICING } from "@/lib/pricing";
 
 interface PaymentCTAProps {
   attemptId: string;
@@ -35,25 +36,39 @@ export default function PaymentCTA({ attemptId }: PaymentCTAProps) {
   }
 
   return (
-    <div className="bg-bg-card border border-accent/30 rounded-lg p-8 text-center">
+    <div className="bg-bg-card border border-accent/30 rounded-2xl p-8 text-center">
       <h3 className="text-xl font-bold mb-2">詳細レポートを解放する</h3>
-      <p className="text-text-muted text-sm mb-4">
-        因子別の徹底解説・地雷行動トップ3・7日改善プラン・LINEテンプレ付き
+      <p className="text-text-muted text-sm mb-6">
+        因子別解説・地雷行動・7日プラン・LINEテンプレ・ファッション提案
       </p>
+      {PRICING.IS_TEST_MODE && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 text-xs px-3 py-1 rounded-full mb-4 inline-block">
+          🧪 テストモード
+        </div>
+      )}
       <div className="mb-6">
-        <span className="text-3xl font-bold text-accent">¥1,980</span>
-        <span className="text-text-muted text-sm ml-2">（税込・買い切り）</span>
+        <span className="text-3xl font-bold text-accent">
+          {PRICING.IS_TEST_MODE ? `テスト決済（${PRICING.TOTAL_PRICE}円）` : `¥${PRICING.TOTAL_PRICE.toLocaleString()}`}
+        </span>
+        {!PRICING.IS_TEST_MODE && (
+          <span className="text-text-muted text-sm ml-2">（税込）</span>
+        )}
       </div>
       <button
         onClick={handlePurchase}
         disabled={loading}
-        className="bg-accent hover:bg-accent-light text-bg-primary font-bold text-lg px-10 py-4 rounded transition-colors disabled:opacity-50"
+        className="w-full sm:w-auto bg-accent hover:bg-accent-dark text-white font-bold text-lg px-10 py-4 rounded-xl transition-colors disabled:opacity-50"
       >
         {loading ? "処理中..." : "レポートを購入する"}
       </button>
-      <p className="text-xs text-text-muted mt-3">
-        ※ サブスクリプションではありません。一度のお支払いで閲覧できます。
-      </p>
+      <div className="mt-4 space-y-1">
+        <p className="text-xs text-text-muted">
+          ✓ 単発購入・自動更新なし
+        </p>
+        <p className="text-xs text-text-muted">
+          ✓ 一度の支払いで永久閲覧可能
+        </p>
+      </div>
     </div>
   );
 }

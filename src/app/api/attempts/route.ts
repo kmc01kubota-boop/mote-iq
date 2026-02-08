@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase";
 import { calculateScores } from "@/lib/scoring";
 
 export async function POST(request: NextRequest) {
+  // Supabase未設定時
+  if (!isSupabaseAdminConfigured() || !supabaseAdmin) {
+    return NextResponse.json(
+      { error: "Database not configured" },
+      { status: 503 }
+    );
+  }
+
   try {
     const { anon_id, answers } = await request.json();
 
@@ -20,7 +28,15 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("Supabase insert error:", error);
-      return NextResponse.json({ error: "Failed to save" }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: "Failed to save",
+          details: error.message,
+          code: error.code,
+          hint: error.hint || null
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ id: data.id });

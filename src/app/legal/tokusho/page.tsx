@@ -1,3 +1,5 @@
+import { PRICING } from "@/lib/pricing";
+
 export const metadata = { title: "特定商取引法に基づく表記｜モテIQ" };
 
 export default function TokushoPage() {
@@ -12,7 +14,7 @@ export default function TokushoPage() {
           { label: "電話番号", value: "【電話番号を記載（請求があった場合に遅滞なく開示）】" },
           { label: "メールアドレス", value: "【メールアドレスを記載】" },
           { label: "販売URL", value: "【サイトURLを記載】" },
-          { label: "販売価格", value: "1,980円（税込）" },
+          { label: "販売価格", value: `${PRICING.TOTAL_PRICE.toLocaleString()}円（税込）` },
           { label: "商品内容", value: "モテIQ 詳細レポート（デジタルコンテンツ）" },
           {
             label: "商品の引渡し時期",

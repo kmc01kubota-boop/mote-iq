@@ -8,7 +8,7 @@ export type FactorKey =
 export const FACTOR_LABELS: Record<FactorKey, string> = {
   cleanliness: "清潔感・生活感コントロール",
   conversation: "会話の余白力",
-  money: "金と余裕の見せ方",
+  money: "お金と余裕の見せ方",
   distance: "距離感と安心感",
   sexAppeal: "大人の色気",
 };

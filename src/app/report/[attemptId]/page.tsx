@@ -1,5 +1,7 @@
 import { notFound, redirect } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase";
+import { stripe, isStripeConfigured } from "@/lib/stripe";
 import { Scores, FACTOR_KEYS, FACTOR_LABELS, FactorKey } from "@/types";
 import {
   factorDetails,
@@ -18,10 +20,21 @@ export async function generateMetadata() {
 
 export default async function ReportPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ attemptId: string }>;
+  searchParams: Promise<{ session_id?: string; debug?: string }>;
 }) {
   const { attemptId } = await params;
+  const { session_id, debug } = await searchParams;
+
+  // 開発環境でのデバッグモード（?debug=1 でアクセス）
+  const isDebugMode = process.env.NODE_ENV === "development" && debug === "1";
+
+  // Supabase未設定時
+  if (!isSupabaseConfigured() || !supabase) {
+    notFound();
+  }
 
   // Fetch attempt
   const { data: attempt, error: attemptError } = await supabase
@@ -35,14 +48,41 @@ export default async function ReportPage({
   }
 
   // Check purchase
-  const { data: purchase } = await supabase
+  let { data: purchase } = await supabase
     .from("purchases")
     .select("status")
     .eq("attempt_id", attemptId)
     .eq("status", "paid")
     .single();
 
-  if (!purchase) {
+  // Stripe Checkoutから戻ってきた場合、session_idで支払い状態を確認
+  if (!purchase && session_id && isStripeConfigured() && stripe && isSupabaseAdminConfigured() && supabaseAdmin) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+
+      if (session.payment_status === "paid" && session.metadata?.attempt_id === attemptId) {
+        // 支払い完了：purchasesテーブルに保存
+        const { error } = await supabaseAdmin.from("purchases").upsert(
+          {
+            attempt_id: attemptId,
+            anon_id: session.metadata.anon_id || attempt.anon_id,
+            stripe_session_id: session_id,
+            status: "paid",
+          },
+          { onConflict: "stripe_session_id" }
+        );
+
+        if (!error) {
+          purchase = { status: "paid" };
+        }
+      }
+    } catch (err) {
+      console.error("Failed to verify Stripe session:", err);
+    }
+  }
+
+  // 購入確認（デバッグモードではスキップ）
+  if (!purchase && !isDebugMode) {
     redirect(`/result/${attemptId}`);
   }
 

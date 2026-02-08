@@ -1,24 +1,57 @@
 @import "tailwindcss";
 
 @theme {
-  --color-accent: #D4A843;
-  --color-accent-light: #E8C76A;
+  /* アクセント：上品なゴールド */
+  --color-accent: #C9A962;
+  --color-accent-light: #D4B87A;
   --color-accent-dark: #B08A2E;
-  --color-bg-primary: #0A0A0A;
-  --color-bg-secondary: #141414;
-  --color-bg-card: #1A1A1A;
-  --color-border: #2A2A2A;
-  --color-text-primary: #E8E8E8;
-  --color-text-secondary: #999999;
-  --color-text-muted: #666666;
+  --color-accent-bg: #FAF6EE;
+
+  /* 背景：白ベース */
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #FAFAFA;
+  --color-bg-card: #FFFFFF;
+
+  /* ボーダー：薄いグレー */
+  --color-border: #E5E5E5;
+  --color-border-light: #F0F0F0;
+
+  /* テキスト：濃いグレー */
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #4A4A4A;
+  --color-text-muted: #8A8A8A;
+}
+
+/* iOS Safari dvh対応 */
+html {
+  height: 100%;
 }
 
 body {
-  font-family: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Helvetica Neue", Arial, sans-serif;
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic Viewport Height for iOS */
+}
+
+/* iOS 自動ズーム防止 (16px以上) */
+input, select, textarea {
+  font-size: 16px;
+}
+
+/* タッチデバイス向け tap highlight 無効化 */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* スムーズスクロール */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 /* Blurred teaser for paid content */

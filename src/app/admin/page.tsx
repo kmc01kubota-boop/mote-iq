@@ -1,0 +1,188 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Users, Banknote, TrendingUp, Lock } from "lucide-react";
+import KPICard from "@/components/admin/KPICard";
+import TypeDistributionChart from "@/components/admin/TypeDistributionChart";
+import RecentList from "@/components/admin/RecentList";
+import LiveIndicator from "@/components/admin/LiveIndicator";
+
+interface DashboardData {
+  totalAttempts: number;
+  completedAttempts: number;
+  totalPurchases: number;
+  totalRevenue: number;
+  cvr: number;
+  completionRate: number;
+  dailyStats: {
+    date: string;
+    attempts: number;
+    purchases: number;
+    revenue: number;
+  }[];
+  recentPurchases: {
+    id: string;
+    created_at: string;
+    attempt_id: string;
+    amount: number;
+  }[];
+  typeDistribution: {
+    type: string;
+    label: string;
+    count: number;
+  }[];
+}
+
+export default function AdminPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<DashboardData | null>(null);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+
+      if (res.ok) {
+        setIsAuthenticated(true);
+        fetchData();
+      } else {
+        setError("パスワードが正しくありません");
+      }
+    } catch {
+      setError("認証エラーが発生しました");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchData() {
+    try {
+      const res = await fetch("/api/admin/dashboard", {
+        headers: { "x-admin-password": password },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+      }
+    } catch (err) {
+      console.error("Failed to fetch dashboard data:", err);
+    }
+  }
+
+  useEffect(() => {
+    if (isAuthenticated && password) {
+      fetchData();
+      // 30秒ごとに自動更新
+      const interval = setInterval(fetchData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, password]);
+
+  // ログイン画面
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="w-full max-w-sm">
+          <div className="bg-white rounded-3xl shadow-sm p-10">
+            <div className="flex justify-center mb-8">
+              <div className="w-16 h-16 rounded-full bg-[#F5F5F7] flex items-center justify-center">
+                <Lock className="w-7 h-7 text-[#86868B]" strokeWidth={1.5} />
+              </div>
+            </div>
+            <h1 className="text-xl font-semibold text-[#1D1D1F] text-center mb-8">
+              管理者ログイン
+            </h1>
+            <form onSubmit={handleLogin}>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="パスワード"
+                className="w-full px-5 py-4 bg-[#F5F5F7] rounded-xl text-[#1D1D1F] placeholder-[#86868B] focus:outline-none focus:ring-2 focus:ring-[#007AFF] transition-all"
+              />
+              {error && (
+                <p className="text-[#FF3B30] text-sm mt-3 text-center">{error}</p>
+              )}
+              <button
+                type="submit"
+                disabled={loading || !password}
+                className="w-full mt-6 bg-[#007AFF] hover:bg-[#0066CC] text-white font-medium py-4 rounded-xl transition-colors disabled:opacity-50"
+              >
+                {loading ? "認証中..." : "ログイン"}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ローディング
+  if (!data) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-[#86868B]">読み込み中...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen px-6 py-10 lg:px-12 lg:py-14">
+      <div className="max-w-6xl mx-auto">
+        {/* ヘッダー */}
+        <div className="flex items-center justify-between mb-12">
+          <h1 className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
+            Analytics
+          </h1>
+          <LiveIndicator />
+        </div>
+
+        {/* KPIカード */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <KPICard
+            icon={Users}
+            label="Total Attempts"
+            value={data.totalAttempts.toLocaleString()}
+          />
+          <KPICard
+            icon={Banknote}
+            label="Total Revenue"
+            value={`¥${data.totalRevenue.toLocaleString()}`}
+          />
+          <KPICard
+            icon={TrendingUp}
+            label="Conversion Rate"
+            value={data.cvr.toFixed(1)}
+            suffix="%"
+          />
+        </div>
+
+        {/* タイプ分布グラフ */}
+        <div className="bg-white rounded-3xl shadow-sm p-8 mb-12">
+          <h2 className="text-lg font-semibold text-[#1D1D1F] mb-8">
+            診断タイプ分布
+          </h2>
+          <TypeDistributionChart data={data.typeDistribution} />
+        </div>
+
+        {/* 直近の購入 */}
+        <div className="bg-white rounded-3xl shadow-sm p-8">
+          <h2 className="text-lg font-semibold text-[#1D1D1F] mb-6">
+            直近の購入
+          </h2>
+          <RecentList purchases={data.recentPurchases} />
+        </div>
+      </div>
+    </div>
+  );
+}
