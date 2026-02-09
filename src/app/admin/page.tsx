@@ -6,6 +6,7 @@ import KPICard from "@/components/admin/KPICard";
 import TypeDistributionChart from "@/components/admin/TypeDistributionChart";
 import RecentList from "@/components/admin/RecentList";
 import LiveIndicator from "@/components/admin/LiveIndicator";
+import LegalEditor from "@/components/admin/LegalEditor";
 
 interface DashboardData {
   totalAttempts: number;
@@ -33,6 +34,12 @@ interface DashboardData {
   }[];
 }
 
+interface LegalData {
+  legal_tokusho: string;
+  legal_privacy: string;
+  legal_terms: string;
+}
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
@@ -41,6 +48,7 @@ export default function AdminPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isPublished, setIsPublished] = useState(true);
   const [toggling, setToggling] = useState(false);
+  const [legalData, setLegalData] = useState<LegalData | null>(null);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -95,6 +103,20 @@ export default function AdminPage() {
     }
   }
 
+  async function fetchLegalData() {
+    try {
+      const res = await fetch("/api/admin/legal", {
+        headers: { "x-admin-password": password },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setLegalData(json);
+      }
+    } catch (err) {
+      console.error("Failed to fetch legal data:", err);
+    }
+  }
+
   async function togglePublish() {
     setToggling(true);
     try {
@@ -121,7 +143,8 @@ export default function AdminPage() {
     if (isAuthenticated && password) {
       fetchData();
       fetchSiteStatus();
-      // 30秒ごとに自動更新
+      fetchLegalData();
+      // 30秒ごとに自動更新（KPIのみ）
       const interval = setInterval(() => {
         fetchData();
         fetchSiteStatus();
@@ -252,12 +275,17 @@ export default function AdminPage() {
         </div>
 
         {/* 直近の購入 */}
-        <div className="bg-white rounded-3xl shadow-sm p-8">
+        <div className="bg-white rounded-3xl shadow-sm p-8 mb-12">
           <h2 className="text-lg font-semibold text-[#1D1D1F] mb-6">
             直近の購入
           </h2>
           <RecentList purchases={data.recentPurchases} />
         </div>
+
+        {/* 法的ページ管理 */}
+        {legalData && (
+          <LegalEditor password={password} initialData={legalData} />
+        )}
       </div>
     </div>
   );
