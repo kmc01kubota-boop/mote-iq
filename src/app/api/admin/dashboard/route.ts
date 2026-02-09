@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase";
 import { PRICING } from "@/lib/pricing";
-import { Scores, FactorKey, FACTOR_KEYS } from "@/types";
+import { Scores, FACTOR_KEYS } from "@/types";
 
-const REPORT_PRICE = PRICING.TOTAL_PRICE; // 550円（税込）
+const REPORT_PRICE = PRICING.TOTAL_PRICE;
 
-// 17タイプのラベル定義
 const TYPE_LABELS: Record<string, string> = {
   S: "静かなる支配者",
   A: "完成間近の策士",
@@ -27,7 +26,6 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export async function GET(request: NextRequest) {
-  // 認証チェック
   const password = request.headers.get("x-admin-password");
   const adminPassword = process.env.ADMIN_PASSWORD;
 
@@ -35,7 +33,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Supabase未設定時
   if (!isSupabaseAdminConfigured() || !supabaseAdmin) {
     return NextResponse.json(
       { error: "Database not configured" },
@@ -44,48 +41,58 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // 7日前の日付
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString();
+    // 期間パラメータ取得 (7 / 30 / all)
+    const period = request.nextUrl.searchParams.get("period") || "7";
+    const days = period === "all" ? null : parseInt(period, 10);
 
-    // 全体の診断数
-    const { count: totalAttempts } = await supabaseAdmin
+    let periodStart: string | null = null;
+    if (days) {
+      const d = new Date();
+      d.setDate(d.getDate() - days);
+      periodStart = d.toISOString();
+    }
+
+    // === 全期間の累計（KPIヘッダー用）===
+    const { count: totalAttemptsAll } = await supabaseAdmin
       .from("attempts")
       .select("*", { count: "exact", head: true });
 
-    // スコアがあるもの = 完了した診断
-    const { count: completedAttempts } = await supabaseAdmin
+    const { count: completedAttemptsAll } = await supabaseAdmin
       .from("attempts")
       .select("*", { count: "exact", head: true })
       .not("scores", "is", null);
 
-    // 全体の購入数
-    const { count: totalPurchases } = await supabaseAdmin
+    const { count: totalPurchasesAll } = await supabaseAdmin
       .from("purchases")
       .select("*", { count: "exact", head: true })
       .eq("status", "paid");
 
-    // 直近7日間の日別データ取得
-    const { data: recentAttempts } = await supabaseAdmin
+    // === 期間内のデータ ===
+    let attemptQuery = supabaseAdmin
       .from("attempts")
-      .select("created_at")
-      .gte("created_at", sevenDaysAgoStr);
+      .select("created_at, scores");
+    if (periodStart) {
+      attemptQuery = attemptQuery.gte("created_at", periodStart);
+    }
+    const { data: periodAttempts } = await attemptQuery;
 
-    const { data: recentPurchasesRaw } = await supabaseAdmin
+    let purchaseQuery = supabaseAdmin
       .from("purchases")
       .select("created_at, attempt_id")
-      .eq("status", "paid")
-      .gte("created_at", sevenDaysAgoStr);
+      .eq("status", "paid");
+    if (periodStart) {
+      purchaseQuery = purchaseQuery.gte("created_at", periodStart);
+    }
+    const { data: periodPurchases } = await purchaseQuery;
 
-    // 日別集計
+    // === 日別集計 ===
     const dailyMap: Record<
       string,
       { attempts: number; purchases: number; revenue: number }
     > = {};
 
-    // 過去7日分の日付を初期化
-    for (let i = 6; i >= 0; i--) {
+    const chartDays = days || 30;
+    for (let i = chartDays - 1; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const key = d.toLocaleDateString("ja-JP", {
@@ -95,8 +102,7 @@ export async function GET(request: NextRequest) {
       dailyMap[key] = { attempts: 0, purchases: 0, revenue: 0 };
     }
 
-    // 診断数カウント
-    recentAttempts?.forEach((a) => {
+    periodAttempts?.forEach((a) => {
       const key = new Date(a.created_at).toLocaleDateString("ja-JP", {
         month: "numeric",
         day: "numeric",
@@ -106,8 +112,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // 購入数カウント
-    recentPurchasesRaw?.forEach((p) => {
+    periodPurchases?.forEach((p) => {
       const key = new Date(p.created_at).toLocaleDateString("ja-JP", {
         month: "numeric",
         day: "numeric",
@@ -123,7 +128,7 @@ export async function GET(request: NextRequest) {
       ...stats,
     }));
 
-    // 最新の購入リスト (10件)
+    // === 直近購入リスト (10件) ===
     const { data: latestPurchases } = await supabaseAdmin
       .from("purchases")
       .select("id, created_at, attempt_id")
@@ -136,42 +141,41 @@ export async function GET(request: NextRequest) {
       amount: REPORT_PRICE,
     }));
 
-    // CVR計算
+    // === CVR / 完了率 ===
+    const periodCompleted = periodAttempts?.filter(
+      (a) => a.scores !== null
+    ).length || 0;
+    const periodPurchaseCount = periodPurchases?.length || 0;
+
     const cvr =
-      completedAttempts && completedAttempts > 0
-        ? ((totalPurchases || 0) / completedAttempts) * 100
+      periodCompleted > 0
+        ? (periodPurchaseCount / periodCompleted) * 100
         : 0;
 
-    // 完了率計算
     const completionRate =
-      totalAttempts && totalAttempts > 0
-        ? ((completedAttempts || 0) / totalAttempts) * 100
+      (periodAttempts?.length || 0) > 0
+        ? (periodCompleted / (periodAttempts?.length || 1)) * 100
         : 0;
 
-    // タイプ別分布を取得
+    // === タイプ別分布 ===
     const { data: attemptsWithScores } = await supabaseAdmin
       .from("attempts")
       .select("scores")
       .not("scores", "is", null);
 
     const typeCountMap: Record<string, number> = {};
-
-    // 全17タイプを初期化
     Object.keys(TYPE_LABELS).forEach((key) => {
       typeCountMap[key] = 0;
     });
 
-    // 各診断結果からタイプを集計
     attemptsWithScores?.forEach((attempt) => {
       const scores = attempt.scores as Scores;
       if (!scores || !scores.grade || !scores.factors) return;
 
       const grade = scores.grade;
-
       if (grade === "S" || grade === "A") {
         typeCountMap[grade] = (typeCountMap[grade] || 0) + 1;
       } else {
-        // B/C/Dは最弱因子を特定
         const sorted = [...FACTOR_KEYS].sort(
           (a, b) => scores.factors[a].normalized - scores.factors[b].normalized
         );
@@ -183,23 +187,61 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // 配列形式に変換
-    const typeDistribution = Object.entries(typeCountMap).map(([type, count]) => ({
-      type,
-      label: TYPE_LABELS[type] || type,
-      count,
-    }));
+    const typeDistribution = Object.entries(typeCountMap).map(
+      ([type, count]) => ({
+        type,
+        label: TYPE_LABELS[type] || type,
+        count,
+      })
+    );
+
+    // === スコア分布（ヒストグラム用）===
+    const scoreDistribution: { range: string; count: number }[] = [];
+    const buckets = [
+      { range: "0-19", min: 0, max: 19 },
+      { range: "20-34", min: 20, max: 34 },
+      { range: "35-54", min: 35, max: 54 },
+      { range: "55-74", min: 55, max: 74 },
+      { range: "75-89", min: 75, max: 89 },
+      { range: "90-100", min: 90, max: 100 },
+    ];
+    const bucketCounts = buckets.map(() => 0);
+
+    attemptsWithScores?.forEach((attempt) => {
+      const scores = attempt.scores as Scores;
+      if (!scores || typeof scores.total !== "number") return;
+      for (let i = 0; i < buckets.length; i++) {
+        if (scores.total >= buckets[i].min && scores.total <= buckets[i].max) {
+          bucketCounts[i]++;
+          break;
+        }
+      }
+    });
+
+    buckets.forEach((b, i) => {
+      scoreDistribution.push({ range: b.range, count: bucketCounts[i] });
+    });
+
+    // === ファネルデータ ===
+    const funnel = {
+      started: totalAttemptsAll || 0,
+      completed: completedAttemptsAll || 0,
+      purchased: totalPurchasesAll || 0,
+    };
 
     return NextResponse.json({
-      totalAttempts: totalAttempts || 0,
-      completedAttempts: completedAttempts || 0,
-      totalPurchases: totalPurchases || 0,
-      totalRevenue: (totalPurchases || 0) * REPORT_PRICE,
+      totalAttempts: totalAttemptsAll || 0,
+      completedAttempts: completedAttemptsAll || 0,
+      totalPurchases: totalPurchasesAll || 0,
+      totalRevenue: (totalPurchasesAll || 0) * REPORT_PRICE,
       cvr,
       completionRate,
       dailyStats,
       recentPurchases,
       typeDistribution,
+      scoreDistribution,
+      funnel,
+      period,
     });
   } catch (e) {
     console.error("Dashboard API error:", e);

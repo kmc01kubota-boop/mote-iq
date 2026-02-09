@@ -1,15 +1,25 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { questions } from "@/data/questions";
 import { getAnonId } from "@/lib/anon";
+import { trackQuizStart, trackQuizComplete } from "@/lib/gtag";
 
 export default function QuizClient() {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  const hasTrackedStart = useRef(false);
+
+  useEffect(() => {
+    if (!hasTrackedStart.current) {
+      trackQuizStart();
+      hasTrackedStart.current = true;
+    }
+  }, []);
 
   const currentQuestion = questions[currentIndex];
   const totalQuestions = questions.length;
@@ -42,7 +52,6 @@ export default function QuizClient() {
 
     try {
       const anonId = getAnonId();
-      console.log("[QuizClient] Submitting answers:", { anonId, answerCount: Object.keys(answers).length });
 
       const res = await fetch("/api/attempts", {
         method: "POST",
@@ -51,12 +60,12 @@ export default function QuizClient() {
       });
 
       const data = await res.json();
-      console.log("[QuizClient] API response:", { status: res.status, data });
 
       if (!res.ok) {
-        throw new Error(data.error || data.details || `HTTP ${res.status}`);
+        throw new Error(data.error || `HTTP ${res.status}`);
       }
 
+      trackQuizComplete(data.grade || "", data.total || 0);
       router.push(`/result/${data.id}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";

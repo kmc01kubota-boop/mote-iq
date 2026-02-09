@@ -29,17 +29,16 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error("Supabase insert error:", error);
       return NextResponse.json(
-        {
-          error: "Failed to save",
-          details: error.message,
-          code: error.code,
-          hint: error.hint || null
-        },
+        { error: "Failed to save" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ id: data.id });
+    return NextResponse.json({
+      id: data.id,
+      grade: scores.grade,
+      total: scores.total,
+    });
   } catch (e) {
     console.error("Attempt API error:", e);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

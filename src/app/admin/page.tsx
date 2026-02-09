@@ -1,12 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Users, Banknote, TrendingUp, Lock } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import {
+  Users,
+  Banknote,
+  TrendingUp,
+  Lock,
+  Download,
+  BarChart3,
+} from "lucide-react";
 import KPICard from "@/components/admin/KPICard";
 import TypeDistributionChart from "@/components/admin/TypeDistributionChart";
 import RecentList from "@/components/admin/RecentList";
 import LiveIndicator from "@/components/admin/LiveIndicator";
 import LegalEditor from "@/components/admin/LegalEditor";
+import FunnelChart from "@/components/admin/FunnelChart";
+import ScoreDistributionChart from "@/components/admin/ScoreDistributionChart";
 
 interface DashboardData {
   totalAttempts: number;
@@ -32,6 +41,16 @@ interface DashboardData {
     label: string;
     count: number;
   }[];
+  scoreDistribution: {
+    range: string;
+    count: number;
+  }[];
+  funnel: {
+    started: number;
+    completed: number;
+    purchased: number;
+  };
+  period: string;
 }
 
 interface LegalData {
@@ -39,6 +58,8 @@ interface LegalData {
   legal_privacy: string;
   legal_terms: string;
 }
+
+type Period = "7" | "30" | "all";
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -49,6 +70,8 @@ export default function AdminPage() {
   const [isPublished, setIsPublished] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [legalData, setLegalData] = useState<LegalData | null>(null);
+  const [period, setPeriod] = useState<Period>("7");
+  const [exporting, setExporting] = useState(false);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -64,7 +87,6 @@ export default function AdminPage() {
 
       if (res.ok) {
         setIsAuthenticated(true);
-        fetchData();
       } else {
         setError("パスワードが正しくありません");
       }
@@ -75,19 +97,22 @@ export default function AdminPage() {
     }
   }
 
-  async function fetchData() {
-    try {
-      const res = await fetch("/api/admin/dashboard", {
-        headers: { "x-admin-password": password },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
+  const fetchData = useCallback(
+    async (p: Period = period) => {
+      try {
+        const res = await fetch(`/api/admin/dashboard?period=${p}`, {
+          headers: { "x-admin-password": password },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setData(json);
+        }
+      } catch (err) {
+        console.error("Failed to fetch dashboard data:", err);
       }
-    } catch (err) {
-      console.error("Failed to fetch dashboard data:", err);
-    }
-  }
+    },
+    [password, period]
+  );
 
   async function fetchSiteStatus() {
     try {
@@ -139,19 +164,49 @@ export default function AdminPage() {
     }
   }
 
+  async function handleExport(type: "attempts" | "purchases") {
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/admin/export?type=${type}`, {
+        headers: { "x-admin-password": password },
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download =
+          res.headers
+            .get("Content-Disposition")
+            ?.split("filename=")[1] ||
+          `moteiq_${type}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error("Export failed:", err);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  function handlePeriodChange(p: Period) {
+    setPeriod(p);
+    fetchData(p);
+  }
+
   useEffect(() => {
     if (isAuthenticated && password) {
       fetchData();
       fetchSiteStatus();
       fetchLegalData();
-      // 30秒ごとに自動更新（KPIのみ）
       const interval = setInterval(() => {
         fetchData();
         fetchSiteStatus();
       }, 30000);
       return () => clearInterval(interval);
     }
-  }, [isAuthenticated, password]);
+  }, [isAuthenticated, password, fetchData]);
 
   // ログイン画面
   if (!isAuthenticated) {
@@ -176,7 +231,9 @@ export default function AdminPage() {
                 className="w-full px-5 py-4 bg-[#F5F5F7] rounded-xl text-[#1D1D1F] placeholder-[#86868B] focus:outline-none focus:ring-2 focus:ring-[#007AFF] transition-all"
               />
               {error && (
-                <p className="text-[#FF3B30] text-sm mt-3 text-center">{error}</p>
+                <p className="text-[#FF3B30] text-sm mt-3 text-center">
+                  {error}
+                </p>
               )}
               <button
                 type="submit"
@@ -202,14 +259,31 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen px-6 py-10 lg:px-12 lg:py-14">
+    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-12 lg:py-14">
       <div className="max-w-6xl mx-auto">
         {/* ヘッダー */}
-        <div className="flex items-center justify-between mb-12">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 sm:mb-12">
           <h1 className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
             Analytics
           </h1>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* 期間フィルタ */}
+            <div className="flex bg-[#F5F5F7] rounded-lg p-1">
+              {(["7", "30", "all"] as Period[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => handlePeriodChange(p)}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    period === p
+                      ? "bg-white text-[#1D1D1F] shadow-sm"
+                      : "text-[#86868B] hover:text-[#1D1D1F]"
+                  }`}
+                >
+                  {p === "7" ? "7日" : p === "30" ? "30日" : "全期間"}
+                </button>
+              ))}
+            </div>
+
             {/* サイト公開トグル */}
             <button
               onClick={togglePublish}
@@ -229,7 +303,9 @@ export default function AdminPage() {
                 <div
                   className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
                   style={{
-                    transform: isPublished ? "translateX(18px)" : "translateX(2px)",
+                    transform: isPublished
+                      ? "translateX(18px)"
+                      : "translateX(2px)",
                   }}
                 />
               </div>
@@ -247,39 +323,93 @@ export default function AdminPage() {
         </div>
 
         {/* KPIカード */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
           <KPICard
             icon={Users}
             label="Total Attempts"
             value={data.totalAttempts.toLocaleString()}
           />
           <KPICard
+            icon={BarChart3}
+            label="Completed"
+            value={data.completedAttempts.toLocaleString()}
+            suffix={`(${data.completionRate.toFixed(0)}%)`}
+          />
+          <KPICard
             icon={Banknote}
-            label="Total Revenue"
+            label="Revenue"
             value={`¥${data.totalRevenue.toLocaleString()}`}
           />
           <KPICard
             icon={TrendingUp}
-            label="Conversion Rate"
+            label="CVR"
             value={data.cvr.toFixed(1)}
-            suffix="%"
+            suffix={`% (${period === "all" ? "全期間" : period + "日間"})`}
           />
         </div>
 
+        {/* ファネル & スコア分布 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 sm:mb-12">
+          <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8">
+            <h2 className="text-lg font-semibold text-[#1D1D1F] mb-6">
+              コンバージョンファネル
+            </h2>
+            <FunnelChart data={data.funnel} />
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8">
+            <h2 className="text-lg font-semibold text-[#1D1D1F] mb-6">
+              スコア分布
+            </h2>
+            <ScoreDistributionChart data={data.scoreDistribution} />
+          </div>
+        </div>
+
         {/* タイプ分布グラフ */}
-        <div className="bg-white rounded-3xl shadow-sm p-8 mb-12">
+        <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8 mb-8 sm:mb-12">
           <h2 className="text-lg font-semibold text-[#1D1D1F] mb-8">
             診断タイプ分布
           </h2>
           <TypeDistributionChart data={data.typeDistribution} />
         </div>
 
-        {/* 直近の購入 */}
-        <div className="bg-white rounded-3xl shadow-sm p-8 mb-12">
-          <h2 className="text-lg font-semibold text-[#1D1D1F] mb-6">
-            直近の購入
-          </h2>
-          <RecentList purchases={data.recentPurchases} />
+        {/* 直近の購入 & CSVエクスポート */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 sm:mb-12">
+          <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm p-6 sm:p-8">
+            <h2 className="text-lg font-semibold text-[#1D1D1F] mb-6">
+              直近の購入
+            </h2>
+            <RecentList purchases={data.recentPurchases} />
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8">
+            <h2 className="text-lg font-semibold text-[#1D1D1F] mb-6">
+              データエクスポート
+            </h2>
+            <div className="space-y-3">
+              <button
+                onClick={() => handleExport("attempts")}
+                disabled={exporting}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#1D1D1F] rounded-xl transition-colors disabled:opacity-50 text-sm font-medium"
+              >
+                <Download className="w-4 h-4" />
+                診断データ CSV
+              </button>
+              <button
+                onClick={() => handleExport("purchases")}
+                disabled={exporting}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#1D1D1F] rounded-xl transition-colors disabled:opacity-50 text-sm font-medium"
+              >
+                <Download className="w-4 h-4" />
+                売上データ CSV
+              </button>
+              {exporting && (
+                <p className="text-[#86868B] text-xs text-center">
+                  エクスポート中...
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* 法的ページ管理 */}

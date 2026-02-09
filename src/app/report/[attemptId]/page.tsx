@@ -13,6 +13,8 @@ import {
 import RadarChart from "@/components/result/RadarChart";
 import ScoreDisplay from "@/components/result/ScoreDisplay";
 import FactorBar from "@/components/result/FactorBar";
+import ReportTracker from "@/components/result/ReportTracker";
+import { PRICING } from "@/lib/pricing";
 
 export async function generateMetadata() {
   return { title: "詳細レポート｜モテIQ" };
@@ -94,6 +96,7 @@ export default async function ReportPage({
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
+      <ReportTracker attemptId={attemptId} grade={scores.grade} price={PRICING.TOTAL_PRICE} />
       <div className="text-center mb-4">
         <span className="inline-block bg-accent/10 text-accent text-xs font-bold px-3 py-1 rounded-full">
           PREMIUM REPORT

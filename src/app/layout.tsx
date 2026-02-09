@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import GoogleAnalytics from "@/components/layout/GoogleAnalytics";
 
 export const metadata: Metadata = {
   title: "モテIQ｜大人の魅力を数値化する25問診断",
@@ -24,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="min-h-[100dvh] flex flex-col bg-bg-primary text-text-primary">
+        <GoogleAnalytics />
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
