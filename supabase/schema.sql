@@ -45,3 +45,23 @@ CREATE POLICY "Allow service insert purchases" ON purchases
 
 CREATE POLICY "Allow service update purchases" ON purchases
   FOR UPDATE USING (true);
+
+-- Site configuration (maintenance mode toggle etc.)
+CREATE TABLE IF NOT EXISTS site_config (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  key text UNIQUE NOT NULL,
+  value jsonb NOT NULL,
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE site_config ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read site_config" ON site_config
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow service all site_config" ON site_config
+  FOR ALL USING (true);
+
+INSERT INTO site_config (key, value)
+VALUES ('site_status', '{"is_published": true}')
+ON CONFLICT (key) DO NOTHING;

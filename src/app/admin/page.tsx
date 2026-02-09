@@ -39,6 +39,8 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<DashboardData | null>(null);
+  const [isPublished, setIsPublished] = useState(true);
+  const [toggling, setToggling] = useState(false);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -79,11 +81,51 @@ export default function AdminPage() {
     }
   }
 
+  async function fetchSiteStatus() {
+    try {
+      const res = await fetch("/api/admin/settings", {
+        headers: { "x-admin-password": password },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setIsPublished(json.is_published);
+      }
+    } catch (err) {
+      console.error("Failed to fetch site status:", err);
+    }
+  }
+
+  async function togglePublish() {
+    setToggling(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-password": password,
+        },
+        body: JSON.stringify({ is_published: !isPublished }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setIsPublished(json.is_published);
+      }
+    } catch (err) {
+      console.error("Failed to toggle site status:", err);
+    } finally {
+      setToggling(false);
+    }
+  }
+
   useEffect(() => {
     if (isAuthenticated && password) {
       fetchData();
+      fetchSiteStatus();
       // 30秒ごとに自動更新
-      const interval = setInterval(fetchData, 30000);
+      const interval = setInterval(() => {
+        fetchData();
+        fetchSiteStatus();
+      }, 30000);
       return () => clearInterval(interval);
     }
   }, [isAuthenticated, password]);
@@ -144,7 +186,41 @@ export default function AdminPage() {
           <h1 className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
             Analytics
           </h1>
-          <LiveIndicator />
+          <div className="flex items-center gap-4">
+            {/* サイト公開トグル */}
+            <button
+              onClick={togglePublish}
+              disabled={toggling}
+              className="flex items-center gap-3 px-4 py-2.5 rounded-full border transition-all disabled:opacity-50"
+              style={{
+                backgroundColor: isPublished ? "#F0FDF4" : "#FEF2F2",
+                borderColor: isPublished ? "#BBF7D0" : "#FECACA",
+              }}
+            >
+              <div
+                className="relative w-10 h-6 rounded-full transition-colors"
+                style={{
+                  backgroundColor: isPublished ? "#22C55E" : "#D1D5DB",
+                }}
+              >
+                <div
+                  className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
+                  style={{
+                    transform: isPublished ? "translateX(18px)" : "translateX(2px)",
+                  }}
+                />
+              </div>
+              <span
+                className="text-sm font-semibold"
+                style={{
+                  color: isPublished ? "#16A34A" : "#DC2626",
+                }}
+              >
+                {toggling ? "切替中..." : isPublished ? "公開中" : "非公開"}
+              </span>
+            </button>
+            <LiveIndicator />
+          </div>
         </div>
 
         {/* KPIカード */}
