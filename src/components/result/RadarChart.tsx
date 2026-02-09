@@ -6,13 +6,17 @@ interface RadarChartProps {
   factors: Record<FactorKey, FactorScore>;
 }
 
-const SIZE = 300;
+const PADDING = 50;
+const CHART_SIZE = 300;
+const SIZE = CHART_SIZE + PADDING * 2;
 const CENTER = SIZE / 2;
-const RADIUS = 120;
+const RADIUS = 110;
 const LEVELS = 4;
 
-function polarToCartesian(angle: number, radius: number): [number, number] {
-  // Start from top (-90 degrees)
+function polarToCartesian(
+  angle: number,
+  radius: number
+): [number, number] {
   const rad = ((angle - 90) * Math.PI) / 180;
   return [CENTER + radius * Math.cos(rad), CENTER + radius * Math.sin(rad)];
 }
@@ -41,26 +45,27 @@ export default function RadarChart({ factors }: RadarChartProps) {
   });
   const dataPath = dataPoints.map((p) => p.join(",")).join(" ");
 
-  // Label positions (slightly further out)
+  // Label positions (further out with enough room)
   const labelPositions = FACTOR_KEYS.map((key, i) => {
-    const [x, y] = polarToCartesian(ANGLES[i], RADIUS + 30);
+    const [x, y] = polarToCartesian(ANGLES[i], RADIUS + 35);
     return { key, x, y, label: FACTOR_LABELS[key], score: factors[key].normalized };
   });
 
   // Short label for display
   const shortLabels: Record<FactorKey, string> = {
     cleanliness: "清潔感",
-    conversation: "会話力",
+    conversation: "会話の余白力",
     money: "金と余裕",
     distance: "距離感",
-    sexAppeal: "色気",
+    sexAppeal: "大人の色気",
   };
 
   return (
-    <div className="flex justify-center">
+    <div className="flex justify-center px-2">
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
-        className="w-full max-w-[320px]"
+        className="w-full max-w-[360px] sm:max-w-[400px]"
+        overflow="visible"
       >
         {/* Grid */}
         {gridPaths.map((points, i) => (
@@ -107,12 +112,16 @@ export default function RadarChart({ factors }: RadarChartProps) {
             y={lp.y}
             textAnchor="middle"
             dominantBaseline="middle"
-            className="text-[10px] fill-text-secondary"
+            className="text-[11px] sm:text-[12px] fill-text-secondary"
           >
-            <tspan x={lp.x} dy="-0.5em">
+            <tspan x={lp.x} dy="-0.6em">
               {shortLabels[lp.key as FactorKey]}
             </tspan>
-            <tspan x={lp.x} dy="1.2em" className="fill-accent text-[11px] font-bold">
+            <tspan
+              x={lp.x}
+              dy="1.3em"
+              className="fill-accent text-[12px] sm:text-[13px] font-bold"
+            >
               {lp.score}
             </tspan>
           </text>
