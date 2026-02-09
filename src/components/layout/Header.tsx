@@ -8,7 +8,7 @@ export default function Header() {
           <span className="text-accent">モテ</span>
           <span className="text-text-primary">IQ</span>
         </Link>
-        <span className="text-xs text-text-muted hidden sm:block">
+        <span className="text-sm font-semibold tracking-tight text-[#1d1d1f] hidden sm:block">
           大人の魅力、数値化します。
         </span>
       </div>

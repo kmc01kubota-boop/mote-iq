@@ -6,21 +6,26 @@ export default function Home() {
     <div className="bg-bg-primary">
       {/* Hero */}
       <section className="max-w-2xl mx-auto px-5 pt-16 pb-12 sm:pt-24 sm:pb-16 text-center">
-        <h1 className="text-[2rem] sm:text-4xl md:text-5xl font-semibold text-text-primary leading-tight tracking-tight mb-6">
-          あなたのモテIQは？
+        <p className="text-sm sm:text-base font-semibold tracking-tight bg-gradient-to-r from-[#1d1d1f] via-[#48484a] to-[#1d1d1f] bg-clip-text text-transparent mb-4 sm:mb-5">
+          大人の魅力、数値化します。
+        </p>
+        <h1 className="text-[2.5rem] sm:text-5xl md:text-6xl font-bold text-[#1d1d1f] leading-[1.1] tracking-[-0.02em] mb-6">
+          あなたの
+          <br className="sm:hidden" />
+          モテIQは？
         </h1>
-        <p className="text-text-secondary text-base sm:text-lg leading-relaxed mb-3 max-w-md mx-auto px-2">
+        <p className="text-[#48484a] text-base sm:text-lg leading-relaxed mb-3 max-w-md mx-auto px-2 tracking-[-0.01em]">
           25問で「男性としての魅力」を数値化。
           <span className="hidden sm:inline">　</span>
           <br className="sm:hidden" />
           女性が見ているポイントを可視化する。
         </p>
-        <p className="text-text-muted text-sm mb-10">
+        <p className="text-[#86868b] text-sm mb-10">
           所要時間：約5分｜匿名・登録不要
         </p>
         <Link
           href="/quiz"
-          className="inline-block w-full sm:w-auto bg-accent hover:bg-accent-dark text-white font-medium text-base sm:text-lg px-10 py-4 rounded-2xl transition-colors shadow-sm"
+          className="inline-block w-full sm:w-auto bg-accent hover:bg-accent-dark text-white font-semibold text-base sm:text-lg px-10 py-4 rounded-2xl transition-colors shadow-sm"
         >
           無料で診断する
         </Link>
