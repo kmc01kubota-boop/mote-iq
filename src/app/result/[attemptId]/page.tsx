@@ -62,12 +62,12 @@ export default async function ResultPage({
       />
 
       {/* Type Label */}
-      <div className="text-center my-6 sm:my-8 py-6 bg-gradient-to-b from-slate-900/50 to-transparent rounded-2xl border border-slate-800">
-        <p className="text-slate-400 text-sm mb-2">あなたのタイプは...</p>
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+      <div className="text-center my-6 sm:my-8 py-6 sm:py-8 bg-gradient-to-b from-accent/10 via-accent/5 to-transparent rounded-2xl border border-accent/20">
+        <p className="text-text-muted text-sm mb-2">あなたのタイプは...</p>
+        <h2 className="text-2xl sm:text-3xl font-bold text-text-primary mb-2">
           {typeInfo.title}
         </h2>
-        <p className="text-amber-400 text-sm sm:text-base">
+        <p className="text-accent-dark text-sm sm:text-base font-medium">
           {typeInfo.subtitle}
         </p>
       </div>
