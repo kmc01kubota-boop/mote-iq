@@ -6,9 +6,73 @@ import RadarChart from "@/components/result/RadarChart";
 import ScoreDisplay from "@/components/result/ScoreDisplay";
 import FactorBar from "@/components/result/FactorBar";
 import PaymentCTA from "@/components/result/PaymentCTA";
+import type { Metadata } from "next";
 
-export async function generateMetadata({ params }: { params: Promise<{ attemptId: string }> }) {
-  return { title: "診断結果｜モテIQ" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ attemptId: string }>;
+}): Promise<Metadata> {
+  const { attemptId } = await params;
+
+  if (!isSupabaseConfigured() || !supabase) {
+    return { title: "診断結果｜モテIQ" };
+  }
+
+  const { data: attempt } = await supabase
+    .from("attempts")
+    .select("scores")
+    .eq("id", attemptId)
+    .single();
+
+  if (!attempt) {
+    return { title: "診断結果｜モテIQ" };
+  }
+
+  const scores = attempt.scores as Scores;
+  const sorted = [...FACTOR_KEYS].sort(
+    (a, b) => scores.factors[b].normalized - scores.factors[a].normalized
+  );
+  const weakest = sorted[sorted.length - 1];
+  const typeInfo = getTypeLabel(scores.grade, weakest);
+
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://mote-iq.vercel.app";
+  const ogParams = new URLSearchParams({
+    title: typeInfo.title,
+    subtitle: typeInfo.subtitle,
+    score: String(scores.total),
+    grade: scores.grade,
+    weakest,
+  });
+
+  const title = `${typeInfo.title}｜モテIQ診断結果`;
+  const description = `モテIQスコア ${scores.total}/100（${scores.grade}ランク）— ${typeInfo.subtitle}。5つの因子であなたのモテ力を徹底分析。`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: `${baseUrl}/result/${attemptId}`,
+      siteName: "モテIQ",
+      images: [
+        {
+          url: `${baseUrl}/api/og?${ogParams.toString()}`,
+          width: 1200,
+          height: 630,
+          alt: `${typeInfo.title} - モテIQ診断結果`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [`${baseUrl}/api/og?${ogParams.toString()}`],
+    },
+  };
 }
 
 export default async function ResultPage({
