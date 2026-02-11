@@ -24,9 +24,17 @@ export default function Footer() {
             特定商取引法に基づく表記
           </Link>
         </div>
-        <p className="text-xs text-text-muted mt-4">
-          &copy; {new Date().getFullYear()} モテIQ. All rights reserved.
-        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-4">
+          <a
+            href="mailto:info@mote-iq.com"
+            className="text-xs text-text-muted hover:text-text-secondary transition-colors"
+          >
+            info@mote-iq.com
+          </a>
+          <p className="text-xs text-text-muted">
+            &copy; {new Date().getFullYear()} モテIQ. All rights reserved.
+          </p>
+        </div>
       </div>
     </footer>
   );

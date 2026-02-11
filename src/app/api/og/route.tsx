@@ -201,7 +201,7 @@ export async function GET(request: NextRequest) {
               color: "#555555",
             }}
           >
-            mote-iq.vercel.app
+            mote-iq.com
           </span>
           <span
             style={{

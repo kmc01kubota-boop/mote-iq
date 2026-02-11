@@ -37,7 +37,7 @@ export async function generateMetadata({
   const weakest = sorted[sorted.length - 1];
   const typeInfo = getTypeLabel(scores.grade, weakest);
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://mote-iq.vercel.app";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://mote-iq.com";
   const ogParams = new URLSearchParams({
     title: typeInfo.title,
     subtitle: typeInfo.subtitle,
@@ -139,7 +139,7 @@ export default async function ResultPage({
 
       {/* Share Buttons */}
       <ShareButtons
-        url={`${process.env.NEXT_PUBLIC_BASE_URL || "https://mote-iq.vercel.app"}/result/${attemptId}`}
+        url={`${process.env.NEXT_PUBLIC_BASE_URL || "https://mote-iq.com"}/result/${attemptId}`}
         title={typeInfo.title}
         score={scores.total}
         grade={scores.grade}
