@@ -6,6 +6,7 @@ import RadarChart from "@/components/result/RadarChart";
 import ScoreDisplay from "@/components/result/ScoreDisplay";
 import FactorBar from "@/components/result/FactorBar";
 import PaymentCTA from "@/components/result/PaymentCTA";
+import ShareButtons from "@/components/result/ShareButtons";
 import type { Metadata } from "next";
 
 export async function generateMetadata({
@@ -135,6 +136,14 @@ export default async function ResultPage({
           {typeInfo.subtitle}
         </p>
       </div>
+
+      {/* Share Buttons */}
+      <ShareButtons
+        url={`${process.env.NEXT_PUBLIC_BASE_URL || "https://mote-iq.vercel.app"}/result/${attemptId}`}
+        title={typeInfo.title}
+        score={scores.total}
+        grade={scores.grade}
+      />
 
       {/* Radar Chart */}
       <div className="my-8">
