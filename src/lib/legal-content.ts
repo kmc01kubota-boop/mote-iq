@@ -39,7 +39,7 @@ export const DEFAULT_LEGAL_CONTENT: Record<LegalPageKey, string> = {
   legal_privacy: `1. 収集する情報
 本サービスでは以下の情報を収集します。
 ・匿名識別子（anon_id）：ブラウザのlocalStorageに生成されるランダムなIDです。氏名、メールアドレス等の個人情報は収集しません。
-・診断回答データ：30問の選択回答とスコア計算結果を保存します。
+・診断回答データ：25問の選択回答とスコア計算結果を保存します。
 ・決済情報：Stripe経由で処理されます。クレジットカード情報は本サービスのサーバーには保存されません。
 
 2. 情報の利用目的
@@ -107,6 +107,35 @@ export async function getLegalContent(key: LegalPageKey): Promise<string> {
     return (data.value as { content: string }).content || DEFAULT_LEGAL_CONTENT[key];
   } catch {
     return DEFAULT_LEGAL_CONTENT[key];
+  }
+}
+
+/**
+ * 法的ページのコンテンツと更新日時を取得
+ */
+export async function getLegalContentWithMeta(
+  key: LegalPageKey
+): Promise<{ content: string; updatedAt: string | null }> {
+  if (!isSupabaseConfigured() || !supabase) {
+    return { content: DEFAULT_LEGAL_CONTENT[key], updatedAt: null };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("site_config")
+      .select("value, updated_at")
+      .eq("key", key)
+      .single();
+
+    if (error || !data) {
+      return { content: DEFAULT_LEGAL_CONTENT[key], updatedAt: null };
+    }
+
+    const content =
+      (data.value as { content: string }).content || DEFAULT_LEGAL_CONTENT[key];
+    return { content, updatedAt: data.updated_at || null };
+  } catch {
+    return { content: DEFAULT_LEGAL_CONTENT[key], updatedAt: null };
   }
 }
 

@@ -1,4 +1,5 @@
-import { getLegalContent } from "@/lib/legal-content";
+import { getLegalContentWithMeta } from "@/lib/legal-content";
+import LegalPageLayout from "@/components/legal/LegalPageLayout";
 
 export const metadata = { title: "利用規約｜モテIQ" };
 
@@ -6,21 +7,16 @@ export const metadata = { title: "利用規約｜モテIQ" };
 export const revalidate = 300;
 
 export default async function TermsPage() {
-  const content = await getLegalContent("legal_terms");
-
-  // テキストをセクションに分割して表示
+  const { content, updatedAt } = await getLegalContentWithMeta("legal_terms");
   const sections = content.split("\n\n").filter(Boolean);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
-      <h1 className="text-2xl font-bold mb-8">利用規約</h1>
-      <div className="prose prose-sm text-text-secondary space-y-6 text-sm leading-relaxed">
+    <LegalPageLayout title="利用規約" updatedAt={updatedAt ?? undefined}>
+      <div className="space-y-6">
         {sections.map((section, idx) => {
           const lines = section.split("\n");
           const firstLine = lines[0];
           const rest = lines.slice(1);
-
-          // 「第X条」で始まる行はセクションヘッダー
           const isHeader = /^第\d+条/.test(firstLine);
 
           return (
@@ -35,9 +31,7 @@ export default async function TermsPage() {
               {rest.map((line, lineIdx) => {
                 if (line.startsWith("・")) {
                   return (
-                    <p key={lineIdx} className="pl-4">
-                      {line}
-                    </p>
+                    <p key={lineIdx} className="pl-4">{line}</p>
                   );
                 }
                 return line ? <p key={lineIdx}>{line}</p> : null;
@@ -46,6 +40,6 @@ export default async function TermsPage() {
           );
         })}
       </div>
-    </div>
+    </LegalPageLayout>
   );
 }

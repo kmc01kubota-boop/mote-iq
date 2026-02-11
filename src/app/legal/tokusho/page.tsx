@@ -1,4 +1,5 @@
-import { getLegalContent, DEFAULT_LEGAL_CONTENT } from "@/lib/legal-content";
+import { getLegalContentWithMeta, DEFAULT_LEGAL_CONTENT } from "@/lib/legal-content";
+import LegalPageLayout from "@/components/legal/LegalPageLayout";
 
 export const metadata = { title: "特定商取引法に基づく表記｜モテIQ" };
 
@@ -11,7 +12,7 @@ interface TokushoField {
 }
 
 export default async function TokushoPage() {
-  const content = await getLegalContent("legal_tokusho");
+  const { content, updatedAt } = await getLegalContentWithMeta("legal_tokusho");
 
   let fields: TokushoField[];
   try {
@@ -22,19 +23,18 @@ export default async function TokushoPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
-      <h1 className="text-2xl font-bold mb-8">特定商取引法に基づく表記</h1>
-      <div className="space-y-4 text-sm">
+    <LegalPageLayout title="特定商取引法に基づく表記" updatedAt={updatedAt ?? undefined}>
+      <div className="space-y-0">
         {fields.map(({ label, value }: TokushoField) => (
           <div
             key={label}
-            className="grid grid-cols-[140px_1fr] gap-4 border-b border-border pb-4"
+            className="grid grid-cols-[120px_1fr] sm:grid-cols-[160px_1fr] gap-4 border-b border-border py-4 first:pt-0"
           >
-            <span className="text-text-muted font-bold">{label}</span>
-            <span className="text-text-secondary">{value}</span>
+            <span className="text-text-muted font-bold text-sm">{label}</span>
+            <span className="text-text-secondary text-sm">{value}</span>
           </div>
         ))}
       </div>
-    </div>
+    </LegalPageLayout>
   );
 }
