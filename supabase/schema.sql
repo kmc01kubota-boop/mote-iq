@@ -4,17 +4,21 @@
 CREATE TABLE IF NOT EXISTS attempts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   anon_id text NOT NULL,
+  quiz_id text NOT NULL DEFAULT 'mote-iq',
   answers jsonb NOT NULL,
   scores jsonb NOT NULL,
   created_at timestamptz DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_attempts_anon_id ON attempts(anon_id);
+CREATE INDEX IF NOT EXISTS idx_attempts_quiz_id ON attempts(quiz_id);
+CREATE INDEX IF NOT EXISTS idx_attempts_quiz_created ON attempts(quiz_id, created_at);
 
 CREATE TABLE IF NOT EXISTS purchases (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   attempt_id uuid NOT NULL REFERENCES attempts(id),
   anon_id text NOT NULL,
+  quiz_id text NOT NULL DEFAULT 'mote-iq',
   stripe_session_id text UNIQUE NOT NULL,
   status text NOT NULL DEFAULT 'pending',
   created_at timestamptz DEFAULT now()
@@ -22,6 +26,8 @@ CREATE TABLE IF NOT EXISTS purchases (
 
 CREATE INDEX IF NOT EXISTS idx_purchases_attempt_id ON purchases(attempt_id);
 CREATE INDEX IF NOT EXISTS idx_purchases_anon_id ON purchases(anon_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_quiz_id ON purchases(quiz_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_quiz_status_created ON purchases(quiz_id, status, created_at);
 
 -- RLS: Enable but allow all reads via anon key (no auth required for MVP)
 ALTER TABLE attempts ENABLE ROW LEVEL SECURITY;

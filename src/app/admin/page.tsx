@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
   Banknote,
@@ -16,6 +17,8 @@ import LiveIndicator from "@/components/admin/LiveIndicator";
 import LegalEditor from "@/components/admin/LegalEditor";
 import FunnelChart from "@/components/admin/FunnelChart";
 import ScoreDistributionChart from "@/components/admin/ScoreDistributionChart";
+import QuizSelector from "@/components/admin/QuizSelector";
+import { getQuizConfig, getQuizSelectorOptions } from "@/config/quizzes";
 
 interface DashboardData {
   totalAttempts: number;
@@ -35,6 +38,7 @@ interface DashboardData {
     created_at: string;
     attempt_id: string;
     amount: number;
+    quizName?: string;
   }[];
   typeDistribution: {
     type: string;
@@ -43,6 +47,8 @@ interface DashboardData {
   }[];
   scoreDistribution: {
     range: string;
+    label?: string;
+    color?: string;
     count: number;
   }[];
   funnel: {
@@ -51,6 +57,7 @@ interface DashboardData {
     purchased: number;
   };
   period: string;
+  quizId: string;
 }
 
 interface LegalData {
@@ -72,6 +79,26 @@ export default function AdminPage() {
   const [legalData, setLegalData] = useState<LegalData | null>(null);
   const [period, setPeriod] = useState<Period>("7");
   const [exporting, setExporting] = useState(false);
+  const [selectedQuizId, setSelectedQuizId] = useState<string>("all");
+
+  // 現在選択中の診断のテーマカラーを取得
+  const activeTheme = (() => {
+    if (selectedQuizId === "all") {
+      return {
+        accentColor: "#007AFF",
+        accentBg: "#EBF5FF",
+        accentText: "#0055CC",
+        funnelColors: ["#007AFF", "#34C759", "#FF9500"] as [string, string, string],
+      };
+    }
+    const config = getQuizConfig(selectedQuizId);
+    return {
+      accentColor: config?.accentColor ?? "#007AFF",
+      accentBg: config?.accentBg ?? "#EBF5FF",
+      accentText: config?.accentText ?? "#0055CC",
+      funnelColors: config?.funnelColors ?? ["#007AFF", "#34C759", "#FF9500"] as [string, string, string],
+    };
+  })();
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -98,11 +125,14 @@ export default function AdminPage() {
   }
 
   const fetchData = useCallback(
-    async (p: Period = period) => {
+    async (p: Period = period, quizId: string = selectedQuizId) => {
       try {
-        const res = await fetch(`/api/admin/dashboard?period=${p}`, {
-          headers: { "x-admin-password": password },
-        });
+        const res = await fetch(
+          `/api/admin/dashboard?period=${p}&quiz_id=${quizId}`,
+          {
+            headers: { "x-admin-password": password },
+          }
+        );
         if (res.ok) {
           const json = await res.json();
           setData(json);
@@ -111,7 +141,7 @@ export default function AdminPage() {
         console.error("Failed to fetch dashboard data:", err);
       }
     },
-    [password, period]
+    [password, period, selectedQuizId]
   );
 
   async function fetchSiteStatus() {
@@ -167,9 +197,12 @@ export default function AdminPage() {
   async function handleExport(type: "attempts" | "purchases") {
     setExporting(true);
     try {
-      const res = await fetch(`/api/admin/export?type=${type}`, {
-        headers: { "x-admin-password": password },
-      });
+      const res = await fetch(
+        `/api/admin/export?type=${type}&quiz_id=${selectedQuizId}`,
+        {
+          headers: { "x-admin-password": password },
+        }
+      );
       if (res.ok) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
@@ -179,7 +212,7 @@ export default function AdminPage() {
           res.headers
             .get("Content-Disposition")
             ?.split("filename=")[1] ||
-          `moteiq_${type}.csv`;
+          `${selectedQuizId}_${type}.csv`;
         a.click();
         URL.revokeObjectURL(url);
       }
@@ -192,7 +225,13 @@ export default function AdminPage() {
 
   function handlePeriodChange(p: Period) {
     setPeriod(p);
-    fetchData(p);
+    fetchData(p, selectedQuizId);
+  }
+
+  function handleQuizChange(quizId: string) {
+    setSelectedQuizId(quizId);
+    setData(null); // ローディング表示
+    fetchData(period, quizId);
   }
 
   useEffect(() => {
@@ -253,125 +292,214 @@ export default function AdminPage() {
   if (!data) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-[#86868B]">読み込み中...</div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center gap-3"
+        >
+          <div
+            className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+            style={{ borderColor: `${activeTheme.accentColor}40`, borderTopColor: activeTheme.accentColor }}
+          />
+          <span className="text-[#86868B] text-sm">読み込み中...</span>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-12 lg:py-14">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-12 lg:py-14 transition-colors duration-500">
+      {/* テーマカラーのアクセント光彩（背景グラデーション） */}
+      <div
+        className="fixed inset-0 pointer-events-none transition-all duration-700 ease-out"
+        style={{
+          background: `radial-gradient(ellipse 80% 50% at 50% -20%, ${activeTheme.accentColor}08, transparent)`,
+        }}
+      />
+
+      <div className="relative max-w-6xl mx-auto">
         {/* ヘッダー */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 sm:mb-12">
-          <h1 className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
-            Analytics
-          </h1>
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* 期間フィルタ */}
-            <div className="flex bg-[#F5F5F7] rounded-lg p-1">
-              {(["7", "30", "all"] as Period[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => handlePeriodChange(p)}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    period === p
-                      ? "bg-white text-[#1D1D1F] shadow-sm"
-                      : "text-[#86868B] hover:text-[#1D1D1F]"
-                  }`}
-                >
-                  {p === "7" ? "7日" : p === "30" ? "30日" : "全期間"}
-                </button>
-              ))}
+        <div className="flex flex-col gap-4 mb-8 sm:mb-12">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <motion.h1
+                className="text-2xl font-semibold tracking-tight transition-colors duration-300"
+                style={{ color: activeTheme.accentText }}
+              >
+                Analytics
+              </motion.h1>
+              <motion.div
+                className="h-6 w-px rounded-full"
+                style={{ backgroundColor: `${activeTheme.accentColor}30` }}
+              />
+              <motion.span
+                key={selectedQuizId}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-sm font-medium"
+                style={{ color: activeTheme.accentColor }}
+              >
+                {selectedQuizId === "all"
+                  ? "全診断"
+                  : getQuizConfig(selectedQuizId)?.name ?? selectedQuizId}
+              </motion.span>
             </div>
 
-            {/* サイト公開トグル */}
-            <button
-              onClick={togglePublish}
-              disabled={toggling}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-full border transition-all disabled:opacity-50"
-              style={{
-                backgroundColor: isPublished ? "#F0FDF4" : "#FEF2F2",
-                borderColor: isPublished ? "#BBF7D0" : "#FECACA",
-              }}
-            >
-              <div
-                className="relative w-10 h-6 rounded-full transition-colors"
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* 期間フィルタ */}
+              <div className="flex bg-[#F5F5F7] rounded-lg p-1">
+                {(["7", "30", "all"] as Period[]).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => handlePeriodChange(p)}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      period === p
+                        ? "bg-white text-[#1D1D1F] shadow-sm"
+                        : "text-[#86868B] hover:text-[#1D1D1F]"
+                    }`}
+                  >
+                    {p === "7" ? "7日" : p === "30" ? "30日" : "全期間"}
+                  </button>
+                ))}
+              </div>
+
+              {/* サイト公開トグル */}
+              <button
+                onClick={togglePublish}
+                disabled={toggling}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-full border transition-all disabled:opacity-50"
                 style={{
-                  backgroundColor: isPublished ? "#22C55E" : "#D1D5DB",
+                  backgroundColor: isPublished ? "#F0FDF4" : "#FEF2F2",
+                  borderColor: isPublished ? "#BBF7D0" : "#FECACA",
                 }}
               >
                 <div
-                  className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
+                  className="relative w-10 h-6 rounded-full transition-colors"
                   style={{
-                    transform: isPublished
-                      ? "translateX(18px)"
-                      : "translateX(2px)",
+                    backgroundColor: isPublished ? "#22C55E" : "#D1D5DB",
                   }}
-                />
-              </div>
-              <span
-                className="text-sm font-semibold"
-                style={{
-                  color: isPublished ? "#16A34A" : "#DC2626",
-                }}
-              >
-                {toggling ? "切替中..." : isPublished ? "公開中" : "非公開"}
-              </span>
-            </button>
-            <LiveIndicator />
+                >
+                  <div
+                    className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
+                    style={{
+                      transform: isPublished
+                        ? "translateX(18px)"
+                        : "translateX(2px)",
+                    }}
+                  />
+                </div>
+                <span
+                  className="text-sm font-semibold"
+                  style={{
+                    color: isPublished ? "#16A34A" : "#DC2626",
+                  }}
+                >
+                  {toggling ? "切替中..." : isPublished ? "公開中" : "非公開"}
+                </span>
+              </button>
+              <LiveIndicator />
+            </div>
+          </div>
+
+          {/* クイズ・セレクター */}
+          <div className="flex justify-center sm:justify-start">
+            <QuizSelector
+              selectedQuizId={selectedQuizId}
+              onSelect={handleQuizChange}
+            />
           </div>
         </div>
 
         {/* KPIカード */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
-          <KPICard
-            icon={Users}
-            label="Total Attempts"
-            value={data.totalAttempts.toLocaleString()}
-          />
-          <KPICard
-            icon={BarChart3}
-            label="Completed"
-            value={data.completedAttempts.toLocaleString()}
-            suffix={`(${data.completionRate.toFixed(0)}%)`}
-          />
-          <KPICard
-            icon={Banknote}
-            label="Revenue"
-            value={`¥${data.totalRevenue.toLocaleString()}`}
-          />
-          <KPICard
-            icon={TrendingUp}
-            label="CVR"
-            value={data.cvr.toFixed(1)}
-            suffix={`% (${period === "all" ? "全期間" : period + "日間"})`}
-          />
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`kpi-${selectedQuizId}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
+              <KPICard
+                icon={Users}
+                label="Total Attempts"
+                value={data.totalAttempts.toLocaleString()}
+                accentColor={activeTheme.accentColor}
+              />
+              <KPICard
+                icon={BarChart3}
+                label="Completed"
+                value={data.completedAttempts.toLocaleString()}
+                suffix={`(${data.completionRate.toFixed(0)}%)`}
+                accentColor={activeTheme.accentColor}
+              />
+              <KPICard
+                icon={Banknote}
+                label="Revenue"
+                value={`¥${data.totalRevenue.toLocaleString()}`}
+                accentColor={activeTheme.accentColor}
+              />
+              <KPICard
+                icon={TrendingUp}
+                label="CVR"
+                value={data.cvr.toFixed(1)}
+                suffix={`% (${period === "all" ? "全期間" : period + "日間"})`}
+                accentColor={activeTheme.accentColor}
+              />
+            </div>
+          </motion.div>
+        </AnimatePresence>
 
         {/* ファネル & スコア分布 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 sm:mb-12">
-          <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8">
-            <h2 className="text-lg font-semibold text-[#1D1D1F] mb-6">
-              コンバージョンファネル
-            </h2>
-            <FunnelChart data={data.funnel} />
-          </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`charts-${selectedQuizId}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 sm:mb-12">
+              <div
+                className="rounded-3xl shadow-sm p-6 sm:p-8 transition-colors duration-500"
+                style={{ backgroundColor: "white" }}
+              >
+                <h2 className="text-lg font-semibold text-[#1D1D1F] mb-6">
+                  コンバージョンファネル
+                </h2>
+                <FunnelChart
+                  data={data.funnel}
+                  colors={activeTheme.funnelColors}
+                />
+              </div>
 
-          <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8">
-            <h2 className="text-lg font-semibold text-[#1D1D1F] mb-6">
-              スコア分布
-            </h2>
-            <ScoreDistributionChart data={data.scoreDistribution} />
-          </div>
-        </div>
+              <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8">
+                <h2 className="text-lg font-semibold text-[#1D1D1F] mb-6">
+                  スコア分布
+                </h2>
+                <ScoreDistributionChart data={data.scoreDistribution} />
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
 
         {/* タイプ分布グラフ */}
-        <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8 mb-8 sm:mb-12">
-          <h2 className="text-lg font-semibold text-[#1D1D1F] mb-8">
-            診断タイプ分布
-          </h2>
-          <TypeDistributionChart data={data.typeDistribution} />
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`type-${selectedQuizId}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25, delay: 0.1 }}
+          >
+            <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8 mb-8 sm:mb-12">
+              <h2 className="text-lg font-semibold text-[#1D1D1F] mb-8">
+                診断タイプ分布
+              </h2>
+              <TypeDistributionChart data={data.typeDistribution} />
+            </div>
+          </motion.div>
+        </AnimatePresence>
 
         {/* 直近の購入 & CSVエクスポート */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 sm:mb-12">
@@ -386,11 +514,20 @@ export default function AdminPage() {
             <h2 className="text-lg font-semibold text-[#1D1D1F] mb-6">
               データエクスポート
             </h2>
+            <p className="text-xs text-[#86868B] mb-4">
+              {selectedQuizId === "all"
+                ? "全診断のデータをエクスポート"
+                : `「${getQuizConfig(selectedQuizId)?.name ?? selectedQuizId}」のデータをエクスポート`}
+            </p>
             <div className="space-y-3">
               <button
                 onClick={() => handleExport("attempts")}
                 disabled={exporting}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#1D1D1F] rounded-xl transition-colors disabled:opacity-50 text-sm font-medium"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all disabled:opacity-50 text-sm font-medium"
+                style={{
+                  backgroundColor: `${activeTheme.accentColor}08`,
+                  color: activeTheme.accentText,
+                }}
               >
                 <Download className="w-4 h-4" />
                 診断データ CSV
@@ -398,7 +535,11 @@ export default function AdminPage() {
               <button
                 onClick={() => handleExport("purchases")}
                 disabled={exporting}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#1D1D1F] rounded-xl transition-colors disabled:opacity-50 text-sm font-medium"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all disabled:opacity-50 text-sm font-medium"
+                style={{
+                  backgroundColor: `${activeTheme.accentColor}08`,
+                  color: activeTheme.accentText,
+                }}
               >
                 <Download className="w-4 h-4" />
                 売上データ CSV

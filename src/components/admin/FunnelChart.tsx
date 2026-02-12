@@ -8,9 +8,13 @@ interface FunnelData {
 
 interface FunnelChartProps {
   data: FunnelData;
+  colors?: [string, string, string];
 }
 
-export default function FunnelChart({ data }: FunnelChartProps) {
+export default function FunnelChart({
+  data,
+  colors = ["#007AFF", "#34C759", "#FF9500"],
+}: FunnelChartProps) {
   const max = Math.max(data.started, 1);
 
   const steps = [
@@ -18,19 +22,19 @@ export default function FunnelChart({ data }: FunnelChartProps) {
       label: "診断開始",
       value: data.started,
       pct: 100,
-      color: "#007AFF",
+      color: colors[0],
     },
     {
       label: "診断完了",
       value: data.completed,
       pct: Math.round((data.completed / max) * 100),
-      color: "#34C759",
+      color: colors[1],
     },
     {
       label: "決済完了",
       value: data.purchased,
       pct: Math.round((data.purchased / max) * 100),
-      color: "#FF9500",
+      color: colors[2],
     },
   ];
 
