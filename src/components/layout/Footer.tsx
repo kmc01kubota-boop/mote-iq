@@ -24,6 +24,27 @@ export default function Footer() {
             特定商取引法に基づく表記
           </Link>
         </div>
+        <div className="mt-4 pt-4 border-t border-border">
+          <p className="text-xs text-text-muted mb-2">関連診断サイト</p>
+          <div className="flex flex-wrap gap-4">
+            <a
+              href="https://jujutsu-shindan.vercel.app"
+              target="_blank"
+              rel="noopener"
+              className="text-xs text-text-muted hover:text-text-secondary transition-colors"
+            >
+              呪術廻戦キャラ診断
+            </a>
+            <a
+              href="https://frieren-shindan.vercel.app"
+              target="_blank"
+              rel="noopener"
+              className="text-xs text-text-muted hover:text-text-secondary transition-colors"
+            >
+              フリーレン キャラ診断
+            </a>
+          </div>
+        </div>
         <div className="mt-4 flex flex-wrap items-center gap-4">
           <a
             href="mailto:info@mote-iq.com"

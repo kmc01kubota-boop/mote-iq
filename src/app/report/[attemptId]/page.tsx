@@ -17,7 +17,12 @@ import ReportTracker from "@/components/result/ReportTracker";
 import { PRICING } from "@/lib/pricing";
 
 export async function generateMetadata() {
-  return { title: "詳細レポート｜モテIQ" };
+  return {
+    title: "詳細レポート｜因子別解説・改善プラン",
+    description:
+      "因子別の詳細解説、地雷行動TOP3、7日改善プラン、LINEテンプレート集。あなただけのモテIQ改善ロードマップ。",
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function ReportPage({
