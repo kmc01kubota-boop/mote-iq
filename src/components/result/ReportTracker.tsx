@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { trackPurchaseComplete, trackReportView } from "@/lib/gtag";
+import { trackPurchaseComplete, trackReportView } from "@/lib/tracking";
 
 interface ReportTrackerProps {
   attemptId: string;

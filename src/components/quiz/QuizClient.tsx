@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { questions } from "@/data/questions";
 import { getAnonId } from "@/lib/anon";
-import { trackQuizStart, trackQuizComplete } from "@/lib/gtag";
+import { trackQuizStart, trackQuizComplete } from "@/lib/tracking";
 
 export default function QuizClient() {
   const router = useRouter();

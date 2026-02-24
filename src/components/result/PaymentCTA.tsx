@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { getAnonId } from "@/lib/anon";
 import { PRICING } from "@/lib/pricing";
-import { trackCheckoutClick } from "@/lib/gtag";
+import { trackCheckoutClick } from "@/lib/tracking";
 
 interface PaymentCTAProps {
   attemptId: string;
@@ -15,7 +15,7 @@ export default function PaymentCTA({ attemptId }: PaymentCTAProps) {
   async function handlePurchase() {
     if (loading) return;
     setLoading(true);
-    trackCheckoutClick(attemptId);
+    trackCheckoutClick(attemptId, PRICING.TOTAL_PRICE);
 
     try {
       const anonId = getAnonId();
