@@ -7,7 +7,7 @@ export const isGAEnabled = (): boolean => !!GA_ID;
 
 // ページビュー送信
 export function pageview(url: string) {
-  if (!isGAEnabled()) return;
+  if (!isGAEnabled() || typeof window.gtag !== "function") return;
   window.gtag("config", GA_ID, { page_path: url });
 }
 
@@ -16,7 +16,7 @@ export function event(
   action: string,
   params?: Record<string, string | number | boolean>
 ) {
-  if (!isGAEnabled()) return;
+  if (!isGAEnabled() || typeof window.gtag !== "function") return;
   window.gtag("event", action, params);
 }
 

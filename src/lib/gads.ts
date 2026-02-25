@@ -15,6 +15,7 @@ export const isGAdsEnabled = (): boolean => !!GADS_ID;
 /** 診断完了コンバージョン */
 export function trackGAdsQuizComplete() {
   if (!isGAdsEnabled() || !GADS_CV_QUIZ) return;
+  if (typeof window.gtag !== "function") return;
   window.gtag("event", "conversion", {
     send_to: GADS_CV_QUIZ,
   });
@@ -23,6 +24,7 @@ export function trackGAdsQuizComplete() {
 /** 購入完了コンバージョン（価値付き） */
 export function trackGAdsPurchase(value: number) {
   if (!isGAdsEnabled() || !GADS_CV_PURCHASE) return;
+  if (typeof window.gtag !== "function") return;
   window.gtag("event", "conversion", {
     send_to: GADS_CV_PURCHASE,
     value,

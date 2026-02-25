@@ -8,13 +8,13 @@ export const isMetaPixelEnabled = (): boolean => !!META_PIXEL_ID;
 
 /** Meta Pixel標準イベント: ページビュー */
 export function trackMetaPageView() {
-  if (!isMetaPixelEnabled()) return;
+  if (!isMetaPixelEnabled() || typeof window.fbq !== "function") return;
   window.fbq("track", "PageView");
 }
 
 /** 診断開始 = コンテンツ閲覧 */
 export function trackMetaQuizStart() {
-  if (!isMetaPixelEnabled()) return;
+  if (!isMetaPixelEnabled() || typeof window.fbq !== "function") return;
   window.fbq("track", "ViewContent", {
     content_name: "mote-iq-quiz",
     content_category: "diagnosis",
@@ -23,7 +23,7 @@ export function trackMetaQuizStart() {
 
 /** 診断完了 = リード獲得 */
 export function trackMetaQuizComplete(grade: string) {
-  if (!isMetaPixelEnabled()) return;
+  if (!isMetaPixelEnabled() || typeof window.fbq !== "function") return;
   window.fbq("track", "Lead", {
     content_name: "mote-iq-quiz-complete",
     content_category: grade,
@@ -32,7 +32,7 @@ export function trackMetaQuizComplete(grade: string) {
 
 /** 決済ボタンクリック = チェックアウト開始 */
 export function trackMetaCheckoutClick(value: number) {
-  if (!isMetaPixelEnabled()) return;
+  if (!isMetaPixelEnabled() || typeof window.fbq !== "function") return;
   window.fbq("track", "InitiateCheckout", {
     value,
     currency: "JPY",
@@ -42,7 +42,7 @@ export function trackMetaCheckoutClick(value: number) {
 
 /** 購入完了 */
 export function trackMetaPurchase(value: number) {
-  if (!isMetaPixelEnabled()) return;
+  if (!isMetaPixelEnabled() || typeof window.fbq !== "function") return;
   window.fbq("track", "Purchase", {
     value,
     currency: "JPY",

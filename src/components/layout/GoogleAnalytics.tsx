@@ -26,7 +26,9 @@ function PageTracker() {
 
   useEffect(() => {
     if (!isMetaPixelEnabled()) return;
-    window.fbq("track", "PageView");
+    if (typeof window.fbq === "function") {
+      window.fbq("track", "PageView");
+    }
   }, [pathname]);
 
   return null;
