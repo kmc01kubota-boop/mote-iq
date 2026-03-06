@@ -5,9 +5,9 @@ import HeroSection from "@/components/home/HeroSection";
 import JsonLd from "@/components/layout/JsonLd";
 
 export const metadata: Metadata = {
-  title: "モテ度診断で大人の魅力を数値化｜25問・無料・匿名",
+  title: "モテ度診断で大人の魅力を数値化｜15問・無料・匿名",
   description:
-    "5因子であなたのモテ力を残酷なまでに客観的に数値化。約5分で完了、登録不要。恋愛偏差値を知りたいならここから。",
+    "5因子であなたのモテ力を残酷なまでに客観的に数値化。約3分で完了、登録不要。恋愛偏差値を知りたいならここから。",
   alternates: {
     canonical: "https://mote-iq.com",
   },
@@ -21,14 +21,14 @@ const jsonLdData = {
       name: "モテIQ",
       url: "https://mote-iq.com",
       description:
-        "5つの因子であなたのモテ力を数値化する25問診断。残酷なまでに客観的な数値が出る。",
+        "5つの因子であなたのモテ力を数値化する15問診断。残酷なまでに客観的な数値が出る。",
       applicationCategory: "EntertainmentApplication",
       operatingSystem: "Any",
       offers: {
         "@type": "Offer",
         price: "0",
         priceCurrency: "JPY",
-        description: "基本診断は無料。詳細レポートは有料（税込¥550）。",
+        description: "基本診断は無料。詳細レポートは有料（税込¥330）。",
       },
       inLanguage: "ja",
     },
@@ -40,7 +40,7 @@ const jsonLdData = {
           name: "モテIQ診断は何分で完了しますか？",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "全25問で約5分で完了します。直感で答えるだけなので深く考える必要はありません。",
+            text: "全15問で約3分で完了します。直感で答えるだけなので深く考える必要はありません。",
           },
         },
         {
@@ -102,7 +102,7 @@ export default function Home() {
           {[
             {
               step: "01",
-              title: "25問に回答",
+              title: "15問に回答",
               desc: "直感で選ぶだけ。深く考えなくていい。",
             },
             {
@@ -146,7 +146,7 @@ export default function Home() {
             href="/quiz"
             className="inline-block w-full sm:w-auto bg-accent hover:bg-accent-dark text-white font-medium text-base px-10 py-4 rounded-2xl transition-colors shadow-sm"
           >
-            無料で診断する（約5分）
+            無料で診断する（約3分）
           </Link>
         </div>
       </section>

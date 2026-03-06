@@ -7,7 +7,7 @@ import GoogleAnalytics from "@/components/layout/GoogleAnalytics";
 export const metadata: Metadata = {
   metadataBase: new URL("https://mote-iq.com"),
   title: {
-    default: "モテIQ診断｜モテ度を5因子で数値化する25問無料テスト",
+    default: "モテIQ診断｜モテ度を5因子で数値化する15問無料テスト",
     template: "%s｜モテIQ",
   },
   description:

@@ -209,7 +209,7 @@ export async function GET(request: NextRequest) {
               color: "#555555",
             }}
           >
-            25問であなたのモテ力を数値化
+            15問であなたのモテ力を数値化
           </span>
         </div>
       </div>

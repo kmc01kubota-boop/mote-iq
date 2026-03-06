@@ -57,7 +57,7 @@ export default function HeroSection() {
         transition={{ duration: 0.7, delay: 1.1, ease: "easeOut" }}
         className="text-[#48484a] text-base sm:text-lg leading-relaxed mb-3 max-w-md mx-auto px-2 tracking-[-0.01em]"
       >
-        25問で「男性としての魅力」を数値化。
+        15問で「男性としての魅力」を数値化。
         <span className="hidden sm:inline">　</span>
         <br className="sm:hidden" />
         女性が見ているポイントを可視化する。
@@ -70,7 +70,7 @@ export default function HeroSection() {
         transition={{ duration: 0.6, delay: 1.4 }}
         className="text-[#86868b] text-sm mb-10"
       >
-        所要時間：約5分｜匿名・登録不要
+        所要時間：約3分｜匿名・登録不要
       </motion.p>
 
       {/* CTA Button */}

@@ -20,7 +20,7 @@ export const PRICING = {
   IS_TEST_MODE,
 
   /** 税抜価格（円） */
-  BASE_PRICE: IS_TEST_MODE ? TEST_PRICE : 500,
+  BASE_PRICE: IS_TEST_MODE ? TEST_PRICE : 300,
 
   /** 消費税率 */
   TAX_RATE: 0.10,

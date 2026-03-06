@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { Scores, FACTOR_KEYS, FACTOR_LABELS } from "@/types";
-import { getFactorComment, getGradeComment, getTypeLabel } from "@/data/report-content";
+import { getTypeLabel } from "@/data/report-content";
 import RadarChart from "@/components/result/RadarChart";
 import ScoreDisplay from "@/components/result/ScoreDisplay";
 import FactorBar from "@/components/result/FactorBar";
@@ -112,13 +112,6 @@ export default async function ResultPage({
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      {/* ========== 無料ゾーン ========== */}
-      <div className="mb-8">
-        <span className="inline-block bg-accent/10 text-accent text-xs font-bold px-3 py-1 rounded-full mb-4">
-          FREE
-        </span>
-      </div>
-
       {/* Score */}
       <ScoreDisplay
         total={scores.total}
@@ -150,56 +143,45 @@ export default async function ResultPage({
         <RadarChart factors={scores.factors} />
       </div>
 
-      {/* Factor Bars */}
-      <div className="space-y-3 my-8">
-        {FACTOR_KEYS.map((key) => (
-          <FactorBar
-            key={key}
-            label={FACTOR_LABELS[key]}
-            score={scores.factors[key].normalized}
-          />
-        ))}
-      </div>
-
-      {/* Strength / Weakness */}
+      {/* Strength / Weakness - simplified, no comments */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 my-6 sm:my-8">
         <div className="bg-bg-card border border-border rounded-2xl p-4 sm:p-5">
           <div className="text-accent text-sm font-bold mb-1">最強因子</div>
           <div className="font-bold text-base">{FACTOR_LABELS[strongest]}</div>
-          <div className="text-text-muted text-sm mt-1 leading-relaxed">
-            {getFactorComment(strongest, scores.factors[strongest].normalized)}
-          </div>
+          <div className="text-text-muted text-xs mt-1">詳しい分析はレポートで</div>
         </div>
         <div className="bg-bg-card border border-border rounded-2xl p-4 sm:p-5">
-          <div className="text-text-muted text-sm font-bold mb-1">要改善因子</div>
+          <div className="text-red-500 text-sm font-bold mb-1">要改善因子</div>
           <div className="font-bold text-base">{FACTOR_LABELS[weakest]}</div>
-          <div className="text-text-muted text-sm mt-1 leading-relaxed">
-            {getFactorComment(weakest, scores.factors[weakest].normalized)}
-          </div>
+          <div className="text-text-muted text-xs mt-1">改善方法はレポートで</div>
         </div>
       </div>
 
-      {/* Free comment */}
-      <div className="bg-bg-card border border-border rounded-2xl p-5 sm:p-6 my-6 sm:my-8">
-        <h3 className="font-bold mb-2 text-base">軍師の所見</h3>
-        <p className="text-text-secondary text-sm sm:text-base leading-relaxed">
-          {getGradeComment(scores.grade)}
-        </p>
-      </div>
-
-      {/* ========== 有料ゾーン ========== */}
-      <div className="border-t border-border pt-8 mt-12">
-        <div className="text-center mb-6">
-          <span className="inline-block bg-accent text-white text-xs font-bold px-3 py-1 rounded-full">
-            PREMIUM
-          </span>
-          <p className="text-text-muted text-sm mt-2">
-            以下のコンテンツは有料レポートで解放されます
-          </p>
+      {/* ========== CTA - moved up, before locked content ========== */}
+      <div className="border-t border-border pt-8 mt-4">
+        {/* Locked factor details teaser */}
+        <div className="relative bg-bg-secondary border border-border rounded-2xl p-4 sm:p-6 mb-6">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-bg-secondary/95 rounded-2xl pointer-events-none" />
+          <h3 className="font-bold text-base mb-3 text-center">あなたの因子別スコア</h3>
+          <div className="space-y-3 filter blur-[3px] select-none" aria-hidden="true">
+            {FACTOR_KEYS.map((key) => (
+              <FactorBar
+                key={key}
+                label={FACTOR_LABELS[key]}
+                score={scores.factors[key].normalized}
+              />
+            ))}
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="bg-white/90 backdrop-blur-sm border border-accent/30 rounded-xl px-6 py-3 shadow-lg">
+              <span className="text-accent font-bold text-sm">レポートで全因子スコアを確認</span>
+            </div>
+          </div>
         </div>
 
         {/* Locked content list */}
         <div className="bg-bg-secondary border border-border rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8">
+          <p className="text-center text-sm font-bold text-text-primary mb-4">レポートに含まれる内容</p>
           <ul className="space-y-3 sm:space-y-4">
             <li className="flex items-start gap-3">
               <span className="text-accent mt-0.5">🔒</span>
